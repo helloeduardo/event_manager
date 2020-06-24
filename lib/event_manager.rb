@@ -1,6 +1,7 @@
 require "csv"
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'date'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, "0")[0..4]
@@ -16,6 +17,25 @@ def clean_phone_number(homephone)
     number.delete_prefix("1")
   else
     number
+  end
+end
+
+def parse_hour(datetime)
+  parsed_time = DateTime.strptime(datetime, '%m/%d/%y %H:%M')
+  parsed_time.hour
+end
+
+def peak_reg_hour(hours)
+  hour_frequency = Hash.new(0)
+
+  hours.each do |hour|
+    hour_frequency[hour] += 1
+  end
+
+  hour_frequency = hour_frequency.sort_by { |hour, tally| tally }
+
+  hour_frequency.each do |hour, tally|
+    puts "#{tally} people registered during #{hour}:00"
   end
 end
 
@@ -62,6 +82,9 @@ contents = CSV.open "event_attendees.csv", headers: true, header_converters: :sy
 template_letter = File.read "form_letter.erb"
 erb_template = ERB.new template_letter
 
+#iteration: time targeting
+hour_data = []
+
 contents.each do |row|
   id = row[0]
   name = row[:first_name]
@@ -69,7 +92,11 @@ contents.each do |row|
   legislators = legislators_by_zipcode(zipcode)
   homephone = clean_phone_number(row[:homephone])
 
+  hour_data << parse_hour(row[:regdate])
+
   form_letter = erb_template.result(binding)
 
   save_thank_you_letter(id, form_letter)
 end
+
+peak_reg_hour(hour_data.sort)
