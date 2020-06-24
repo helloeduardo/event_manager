@@ -25,6 +25,11 @@ def parse_hour(datetime)
   parsed_time.hour
 end
 
+def parse_day(datetime)
+  parsed_time = DateTime.strptime(datetime, '%m/%d/%y %H:%M')
+  parsed_time.wday
+end
+
 def peak_reg_hour(hours)
   hour_frequency = Hash.new(0)
 
@@ -36,6 +41,20 @@ def peak_reg_hour(hours)
 
   hour_frequency.each do |hour, tally|
     puts "#{tally} people registered during #{hour}:00"
+  end
+end
+
+def peak_day(days)
+  day_frequency = Hash.new(0)
+
+  days.each do |day|
+    day_frequency[day] += 1
+  end
+
+  day_frequency = day_frequency.sort_by { |day, tally| tally }
+
+  day_frequency.each do |day, tally|
+    puts "#{tally} people registered on day of the week #{day}"
   end
 end
 
@@ -84,6 +103,8 @@ erb_template = ERB.new template_letter
 
 #iteration: time targeting
 hour_data = []
+#iteration: day targeting
+day_data = []
 
 contents.each do |row|
   id = row[0]
@@ -93,6 +114,7 @@ contents.each do |row|
   homephone = clean_phone_number(row[:homephone])
 
   hour_data << parse_hour(row[:regdate])
+  day_data << parse_day(row[:regdate])
 
   form_letter = erb_template.result(binding)
 
@@ -100,3 +122,4 @@ contents.each do |row|
 end
 
 peak_reg_hour(hour_data.sort)
+peak_day(day_data.sort)
