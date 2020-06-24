@@ -1,5 +1,6 @@
 require "csv"
 require 'google/apis/civicinfo_v2'
+require 'erb'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, "0")[0..4]
@@ -13,12 +14,8 @@ def legislators_by_zipcode(zipcode)
     legislators = civic_info.representative_info_by_address(
                              address: zipcode,
                              levels: 'country',
-                             roles: ['legislatorUpperBody', 'legislatorLowerBody'])
-    legislators = legislators.officials
-
-    legislator_names = legislators.map(&:name)
-
-    legislators_string = legislator_names.join(", ")
+                             roles: ['legislatorUpperBody', 'legislatorLowerBody']
+                           ).officials
 
   rescue
     "You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials"
@@ -39,7 +36,8 @@ puts 'Event Manager Initialized!'
 
 contents = CSV.open "event_attendees.csv", headers: true, header_converters: :symbol
 
-template_letter = File.read "form_letter.html"
+template_letter = File.read "form_letter.erb"
+erb_template = ERB.new template_letter
 
 contents.each do |row|
   name = row[:first_name]
@@ -48,8 +46,6 @@ contents.each do |row|
 
   legislators = legislators_by_zipcode(zipcode)
 
-  personal_letter = template_letter.gsub('FIRST_NAME', name)
-  personal_letter.gsub!('LEGISLATORS', legislators)
-
-  puts personal_letter
+  form_letter = erb_template.result(binding)
+  puts form_letter
 end
